@@ -1,0 +1,118 @@
+// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity ^0.8.0;
+
+/* El nombre de este contrato inteligente es Boleta Electrónica, 
+ya que se propone que se ejecute en las boletas electrónicas digitales con las que actualmente cuenta el INE. */
+
+contract BoletaElectronica {
+
+/* Se muestra de manera pública la dirección del propietario del contrato inteligente, 
+ya que es el único que puede agregar candidatos y dar derecho al voto a los ciudadanos (en este caso, el INE). */
+
+    address public INE = 0xE7A0a2DB2a46D823BA540d5c4b0af21b6164D745;
+
+/* El struct que se propone para los candidatos consta de un número de id para fácil identificación, el nombre completo del candidato, 
+el partido político por el que se postula el candidato y el número de votos obtenidos por el candidato. */
+
+    struct Candidato {
+        uint8 id;
+        string nombre;
+        string partido;
+        uint votos;
+    }
+
+    Candidato public canditato1 = Candidato({
+        id: 1,
+        nombre: "Juan",
+        partido: "azul",
+        votos: 0
+    });
+
+    Candidato public canditato2 = Candidato({
+        id: 2,
+        nombre: "Maria",
+        partido: "rojo",
+        votos: 0
+    });
+
+    Candidato public canditato3 = Candidato({
+        id: 3,
+        nombre: "Jose",
+        partido: "amarillo",
+        votos: 0
+    });
+
+/* El struct que se propone para los ciudadanos consta de acreditación de la identidad, ubicación del registro en Lista Nominal, 
+si se ha votado o no se ha votado en esta elección y que el voto tenga el valor de uno. */
+
+    struct Ciudadano {
+        bool identidad;
+        bool enLista;
+        bool voted;
+        uint8 peso;
+    }
+
+/* Los mapping hacen referencia, en el caso del ciudadano, a que este se convierta en votante si cumple una serie de requisitos, 
+y en el caso del candidato, cada uno se convierta en una opción por la cual votar. */
+
+    mapping(address => Ciudadano) Votante;
+
+    mapping(uint => Candidato) Votar;
+
+/* Las functions agregadas a este contrato inteligente tienen la finalidad de fungir como los requisitos que el ciudadano debe cumplir para ser votante, 
+como que pueda acreditar su identidad, que se encuentre su registro en Lista Nominal, que no haya votado y que su voto tenga el valor de uno; 
+como propuesta de mejora, para que el ciudadano pueda acreditar su identidad y para encontrar su registro en Lista Nominal, 
+sería necesario que el contrato inteligente pueda obtener información de una fuente externa que sería una base de datos, para lo cual se propone, 
+en el caso de acreditar la identidad, que las diez huellas digitales que el instituto ya tiene de cada ciudadano, se conviertan en un NFT, 
+y en el caso de la Lista Nominal, que el QR que hoy en día ya tienen las credenciales para votar vigentes, también se conviertan en un NFT; 
+de esta forma, al usar la Boleta Electronica y escanear sus huellas, el ciudadano acredita de manera indubitable su identidad, 
+y al escanear la credencial, encuentra su registro en la Lista Nominal, lo cual da absoluta certeza de que ese ciudadano sí tiene derecho a votar. */
+
+    function AcreditarIdentidad(address ciudadano) public returns(bool identidad, address) {
+        Votante[ciudadano].identidad = true;
+        return (true, ciudadano);
+    }
+
+    function ListaNominal(address ciudadano) public returns(bool enLista, address) {
+        Votante[ciudadano].enLista = true;
+        return (true, ciudadano);
+    }
+
+    function NoHaVotado(address ciudadano) public returns(bool voted, address) {
+        Votante[ciudadano].voted = false;
+        return (false, ciudadano);
+    }
+
+    function UnVoto(address ciudadano) public returns (uint8 peso, address) {
+        Votante[ciudadano].peso = 1;
+        return (1, ciudadano);
+    } 
+
+/* La hora de inicio y la hora de fin de la votación son públicas y son determinadas previamente; 
+como propuesta de mejora, se sugiere el uso de oráculos confiables para determinar con exactitud la hora de inicio
+(las ocho horas del primer domingo del mes de junio), y la hora de finalización (las dieciocho horas del primer domingo del mes de junio). */
+
+    string public inicioVotacion = "8:00 (UTC-6), primer domingo de junio de 2024";
+    
+    string public finVotacion = "18:00 (UTC-6), primer domingo de junio de 2024";
+
+/* Para la función de votar, a fin de facilitar el proceso, se haría introduciendo el id del candidato, 
+aunque la idea es que el ciudadano lo haga tocando la opción de su preferencia en la pantalla de la boleta electrónica digital; 
+para que el ciudadano se convierta en votante debe acreditar su identidad, encontrar su registro en Lista Nominal y que no haya votado; 
+finalmente, se impide que el ciudadano vuelva a votar al ejecutar y terminar la función, y a dicho voto se le da un valor de uno, 
+respetando de esta forma el principio de "un ciudadano, un voto". */
+
+    function VotaAqui(uint8 id) public {
+        require(Votante[msg.sender].identidad);
+        require(Votante[msg.sender].enLista);
+        require(Votante[msg.sender].voted);
+        Votante[msg.sender].voted=true;
+        Votar[id].votos += Votante[msg.sender].peso;
+        }
+
+/* Para la función de candidato electo, además de poder determinar al candidato ganador, se propone obtener la votación de todos los candidatos registrados y 
+no solo la votación del elegido, así como también los votos totales que coincidirían con los votos válidos (debido a que no existirían votos nulos), 
+lo anterior para garantizar los principios rectores de la función electoral, como lo son la certeza, la transparencia y la máxima publicidad. */
+
+}
